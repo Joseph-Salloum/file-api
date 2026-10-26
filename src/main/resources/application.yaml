@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/file_api
+    username: file_api
+    password: local_dev_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      open-in-view: false
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  application:
+    name: file-api
