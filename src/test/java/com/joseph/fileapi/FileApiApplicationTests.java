@@ -1,13 +1,13 @@
 package com.joseph.fileapi;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,10 +88,15 @@ class FileApiApplicationTests {
 	@Test
 	void apiKeyCreationTest() {
 		byte[] keyHash = new byte[] { 1, 2, 3 };
+		UUID id = UUIDGenerator.generateUUIDv7();
 		ApiClient apiClient = new ApiClient("test", true);
-		ApiKey apiKey = new ApiKey(keyHash, apiClient, null);
+		ApiKey apiKey = new ApiKey(id, keyHash, apiClient, null);
 
 		assertNull(apiKey.getCreatedAt());
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			new ApiKey(null, keyHash, apiClient, ApiKeyStatus.ACTIVE);
+		});
 
 		apiClientRepository.save(apiClient);
 		apiKeyRepository.save(apiKey);
@@ -121,8 +126,9 @@ class FileApiApplicationTests {
 	@Test
 	void apiKeyLifeCycleTest() {
 		byte[] keyHash = new byte[] { 1, 2, 3 };
+		UUID id = UUIDGenerator.generateUUIDv7();
 		ApiClient apiClient = new ApiClient("test", true);
-		ApiKey apiKey = new ApiKey(keyHash, apiClient, ApiKeyStatus.ACTIVE);
+		ApiKey apiKey = new ApiKey(id, keyHash, apiClient, ApiKeyStatus.ACTIVE);
 
 		apiClientRepository.save(apiClient);
 		apiKeyRepository.save(apiKey);
@@ -173,8 +179,9 @@ class FileApiApplicationTests {
 	@Test
 	void apiKeyRetrievalTest() {
 		byte[] keyHash = new byte[] { 1, 2, 3 };
+		UUID id = UUIDGenerator.generateUUIDv7();
 		ApiClient apiClient = new ApiClient("test", true);
-		ApiKey apiKey = new ApiKey(keyHash, apiClient, ApiKeyStatus.ACTIVE);
+		ApiKey apiKey = new ApiKey(id, keyHash, apiClient, ApiKeyStatus.ACTIVE);
 
 		apiClientRepository.save(apiClient);
 		apiKeyRepository.save(apiKey);
@@ -183,7 +190,7 @@ class FileApiApplicationTests {
 		entityManager.clear();
 
 		List<ApiKey> findByClientId = apiKeyRepository.findByApiClient_Id(apiClient.getId());
-		assertNotEquals(0, findByClientId.size());
+		assertEquals(1, findByClientId.size());
 		assertEquals(apiKey.getId(), findByClientId.get(0).getId());
 
 		ApiKey findByIdAndClientId = apiKeyRepository.findByIdAndApiClient_Id(apiKey.getId(), apiClient.getId()).orElse(null);

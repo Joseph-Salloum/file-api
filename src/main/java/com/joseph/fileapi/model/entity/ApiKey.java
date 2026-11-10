@@ -10,7 +10,6 @@ import org.hibernate.annotations.Generated;
 
 import com.joseph.fileapi.exception.exceptions.IllegalOperationException;
 import com.joseph.fileapi.model.constant.ApiKeyStatus;
-import com.joseph.fileapi.util.UUIDGenerator;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -49,12 +48,12 @@ public class ApiKey {
 
     protected ApiKey() {}
 
-    public ApiKey(byte[] keyHash, ApiClient apiClient, ApiKeyStatus status) {
-        initialize(keyHash, apiClient, status);
+    public ApiKey(UUID id, byte[] keyHash, ApiClient apiClient, ApiKeyStatus status) {
+        initialize(id, keyHash, apiClient, status);
     }
 
-    public ApiKey(byte[] keyHash, ApiClient apiClient, ApiKeyStatus status, OffsetDateTime expiresAt) {
-        this(keyHash, apiClient, status);
+    public ApiKey(UUID id, byte[] keyHash, ApiClient apiClient, ApiKeyStatus status, OffsetDateTime expiresAt) {
+        this(id, keyHash, apiClient, status);
         this.expiresAt = expiresAt;
     }
 
@@ -80,7 +79,10 @@ public class ApiKey {
     public OffsetDateTime getExpiresAt() { return this.expiresAt; }
     public OffsetDateTime getRevokedAt() { return this.revokedAt; }
 
-    private void initialize(byte[] keyHash, ApiClient apiClient, ApiKeyStatus status) {
+    private void initialize(UUID id, byte[] keyHash, ApiClient apiClient, ApiKeyStatus status) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id cannot be null");
+        }
         if (keyHash == null) {
             throw new IllegalArgumentException("Keyhash cannot be null");
         }
@@ -88,7 +90,7 @@ public class ApiKey {
             throw new IllegalArgumentException("ApiClient cannot be null");
         }
 
-        this.id = UUIDGenerator.generateUUIDv7();
+        this.id = id;
         this.keyHash = Arrays.copyOf(keyHash, keyHash.length);
         this.apiClient = apiClient;
         this.status = ((status == null) ? ApiKeyStatus.ACTIVE : status);
