@@ -26,7 +26,7 @@ by performing these checks:
 3- checking if the key is expired
 4- hashing the key and compare it with the stored hash
 5- checking whether the API client associated with the key is enabled
-if the validation failed at any point, I will assume that the key is invalid and return 401 unauthorized
+if the validation failed at any point, I will assume that the key is invalid and return HTTP 401 (unauthorized)
 
 ## 3. Assumptions
 
@@ -36,3 +36,11 @@ if the validation failed at any point, I will assume that the key is invalid and
 - if expires_at value was NULL, this means that this key has no expiration time(the key does not expire).
 - if revoked_at is null then the key has not been revoked, or else it is revoked and will never work again.
 - the client may need a way to temporarily disable a specific key, in this case he can use the status column.
+
+## 4. Key Creation Business Rules
+
+- The requested API client must exist and be enabled.
+- Whenever expires_at is provided, it must be strictly later than the current time. Otherwise, an InvalidTimestampException is thrown and HTTP 422 (Unprocessable Content) is returned.
+- Clients that do not exist will cause a ClientNotFoundException and HTTP 404 (Not Found).
+- Disabled clients will cause an IllegalOperationException and HTTP 403 (Forbidden).
+- Newly created API keys automatically receive the ACTIVE status. The client may change the key's status through a separate operation after creation.
