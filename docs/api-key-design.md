@@ -44,3 +44,38 @@ if the validation failed at any point, I will assume that the key is invalid and
 - Clients that do not exist will cause a ClientNotFoundException and HTTP 404 (Not Found).
 - Disabled clients will cause an IllegalOperationException and HTTP 403 (Forbidden).
 - Newly created API keys automatically receive the ACTIVE status. The client may change the key's status through a separate operation after creation.
+
+## 5. API Key Creation Workflow
+
+### 5.1 Overall Workflow
+
+- `ApiKeyResponse createApiKey(CreateApiKeyRequest request)` method inside `ApiKeyService` receives a `CreateApiKeyRequest` object from the controller that's calling it and returns an `ApiKeyResponse` object.
+- `CreateApiKeyRequest` and `ApiKeyResponse` internal structure:
+    ```java
+        public class CreateApiKeyRequest {
+            @NotNull
+            private UUID apiClientId;
+            private OffsetDateTime expiresAt;
+        }
+
+        public class ApiKeyResponse {
+            private String apiKey;
+            private ApiKeyStatus status;
+            private OffsetDateTime createdAt;
+            private OffsetDateTime expiresAt;
+        }
+    ```
+- The method retrieves the client from the db using `ApiClientRepository`, it verifies that the client is enabled, and validates the `expiresAt` timestamp if provided, then it delegates the generation and entity construction to `ApiKeyFactory`, then it persists the entity through `ApiKeyRepository` and constructs an `ApiKeyResponse` response DTO which holds the plaintext API key and returns it to the caller.
+
+### 5.2 Transaction Management
+
+- `createApiKey()` method executes within a db transaction.
+- If the method completes successfully, Spring attempts to commit the transaction. By default, unchecked exceptions (RuntimeException and Error) escaping the method trigger a rollback.
+- The response object is constructed before the transaction is committed. However, constructing the response does not guarantee that the transaction will commit successfully.
+- If the commit fails, the caller receives an exception instead of a successful response. The final transaction outcome depends on the nature of the failure and the transaction manager.
+- Note that database rollback does not reverse in-memory operations, such as plaintext API key generation.
+### 5.3 Security Considerations
+
+- Plaintext API keys are returned only during creation and can never be retrieved later.
+- Only the hashed API key is persisted.
+- The plaintext key is obtained from the factory's generation result, not the database entity.
